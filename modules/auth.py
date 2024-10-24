@@ -19,7 +19,7 @@ def get_access_token():
     # Request the access token
     try:
         response = requests.post(TOKEN_URL, data=payload)
-        logging.info('Calling API token endpoing')
+        logging.info('Calling API token endpoint')
     except Exception as e:
         logging.error(f'Unable to get API token succesfully due to {e}')
     

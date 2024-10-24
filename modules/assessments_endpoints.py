@@ -2,16 +2,21 @@ import requests
 import pandas as pd
 import json
 import logging
+from datetime import datetime
 from .config import base_url_illuminate
 
+current_date = datetime.now()
+current_date = current_date.strftime('%Y-%m-%d')
+#Currently have url_args hardcoded in each function param to be date filtered
 
-def get_all_assessments(access_token):
+
+def get_all_assessments_metadata(access_token):
     # Set the initial page and an empty DataFrame to store all results
     page = 1
     all_results = pd.DataFrame()
 
     # Base URL and headers for API requests
-    url_ext = 'Assessments/?page={}&limit=5000'
+    url_ext = 'Assessments/?page={}&limit=1000'
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
@@ -21,7 +26,7 @@ def get_all_assessments(access_token):
         # Make the API request with the current page number
         response = requests.get(base_url_illuminate + url_ext.format(page), headers=headers)
         results = json.loads(response.content)
-
+    
         # Check if the response is successful
         if response.status_code != 200:
             print(f"Error fetching page {page}: {response.status_code}")
@@ -33,7 +38,7 @@ def get_all_assessments(access_token):
 
         # Check if we've retrieved all pages
         if page >= results['num_pages']:
-            logging.info(f'Looped through {page} pages. Results for getting all assessments output into results frame')
+            logging.info(f'Looped through {page} pages. Results for func get_all_assessments_metadata output into DataFrame')
             break
 
         # Move to the next page
@@ -42,83 +47,143 @@ def get_all_assessments(access_token):
     return(all_results)
 
 
-# def get_specific_assessment_standard(access_token, _id):
-#    # Base URL and headers for API requests
-   
-#     url_ext = f'AssessmentAggregateStudentResponsesStandard/?page=1&assessment_id={_id}&limit=5000'
+def get_single_assessment(access_token, _id, standard_or_no_standard):
+    # Set the initial page and an empty DataFrame to store all results
+    page = 1
+    all_results = pd.DataFrame()
 
-#     headers = {
-#         "Authorization": f"Bearer {access_token}"
-#     }
+    url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
 
-#     response = requests.get(base_url_illuminate + url_ext, headers=headers)
+    # Determine the endpoint based on the standard_or_no_standard parameter
+    if standard_or_no_standard == 'No_Standard':
+        url_ext = f'AssessmentAggregateStudentResponses/{url_args}'
+    elif standard_or_no_standard == 'Standard':
+        url_ext = f'AssessmentAggregateStudentResponsesStandard/{url_args}'
+    else:
+        print('Wrong variable for standard_or_no_standard')
+        return None  # Exit the function if the parameter is incorrect
 
-#     if response.status_code == 200:
-#         results = json.loads(response.content)
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
 
-#         num_results = results['num_results']
 
+    while True:
+        # Make the API request with the current page number
+        response = requests.get(base_url_illuminate + url_ext, headers=headers)
 
-#     return(response)
+        # Check if the response is successful
+        if response.status_code != 200:
+            logging.error(f"Error fetching page {page}: {response.status_code}")
+            break
+
+        # Parse the response content
+        results = json.loads(response.content)
+
+        # Convert the results of the current page to a DataFrame and append to all_results
+        page_results = pd.DataFrame(results['results'])
+        all_results = pd.concat([all_results, page_results], ignore_index=True)
+
+        # Check if we've retrieved all pages
+        if page >= results.get('num_pages', 1):  # Default to 1 if 'num_pages' is not present
+            logging.info(f'Looped through {page} pages for assessment ID {_id}. Results output into DataFrame.')
+            break
+
+        # Move to the next page
+        page += 1
+        # Update the URL for the next page
+        url_ext = f'AssessmentAggregateStudentResponses{"Standard" if standard_or_no_standard == "Standard" else ""}/{url_args}'
+
+    return all_results
 
 
 
 def get_assessment_scores(access_token, _id, standard_or_no_standard):
-    
-    if standard_or_no_standard == 'No_Standard':
-        url_ext = f'AssessmentAggregateStudentResponses/?page=1&assessment_id={_id}&limit=5000'
-    elif standard_or_no_standard == 'Standard':
-        url_ext = f'AssessmentAggregateStudentResponsesStandard/?page=1&assessment_id={_id}&limit=5000'
-    else:
-        print('Wrong variable for standard_or_no_standard')
-
+    # Initialize variables
+    page = 1
+    logging_list = []  # List to store logging information
+    df_results_list = []  # List to collect results DataFrames
     headers = {
-    "Authorization": f"Bearer {access_token}"
+        "Authorization": f"Bearer {access_token}"
     }
 
-    response = requests.get(base_url_illuminate + url_ext, headers=headers)
-    
-    logging_list = []
-    df_result = pd.DataFrame()  # Initialize df_result as an empty DataFrame
+    url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
 
-    # log the status_code, first test date, last test date, and Total Number of Tests
-    r = response.status_code
-
-    if r == 200:
-        # if call is successful
-        results = json.loads(response.content)
-        num_results = results['num_results']
-
-        if num_results == 0:
-            # assessment id has returned no results, append the following data to a list
-            d = [_id, standard_or_no_standard, r, '', '', '', num_results]
-            logging_list.append(d)
-        else:
-            df_result = pd.DataFrame(results['results'])
-            df_result = df_result.sort_values(by='date_taken')
-            df_result.reset_index(drop=True, inplace=True)
-            df_result['percent_correct'] = df_result['percent_correct'].astype(float)
-            df_result['percent_correct'] = df_result['percent_correct'].round()
-            df_result['percent_correct'] = df_result['percent_correct'].astype(int)
-            df_result['date_taken'] = pd.to_datetime(df_result['date_taken'])
-            df_result['Standard_No_Standard'] = standard_or_no_standard
-
-            title = df_result.iloc[0]['title']
-            first_test = df_result.iloc[0]['date_taken']
-            last_test = df_result.iloc[-1]['date_taken']
-
-            d = [_id, standard_or_no_standard, r, title, first_test, last_test, num_results]
-            logging_list.append(d)
-
+    # Determine the endpoint based on the standard_or_no_standard parameter
+    if standard_or_no_standard == 'No_Standard':
+        url_ext = f'AssessmentAggregateStudentResponses/{url_args}'
+    elif standard_or_no_standard == 'Standard':
+        url_ext = f'AssessmentAggregateStudentResponsesStandard/{url_args}'
+    elif standard_or_no_standard == 'Group':
+        url_ext = f'AssessmentAggregateStudentResponsesGroup/{url_args}'
     else:
-        # If API call is not 200
-        d = [_id, standard_or_no_standard, r, '', '', '', 0]
-        logging_list.append(d)
+        print('Wrong variable for standard_or_no_standard')
+        return None, None  # Exit the function if the parameter is incorrect
 
-    t = pd.DataFrame(logging_list, columns=['Assessment_ID', 'Standard_No_Standard', 'Status_Code', 'Assessment_Name', 'First_Test_Date', 'Last_Test_Date', 'Num_Of_Tests'])
-    
-    return(df_result, t)
-    #now change df_result to append to an empty list, and same for t
+    while True:
+        # Make the API request with the current page number
+        logging.info(base_url_illuminate + url_ext)
+        response = requests.get(base_url_illuminate + url_ext, headers=headers)
+        r = response.status_code
+        logging.info(f'The status code for assessment_id {_id} is {r}')
+
+        # Log the status code for the current page request
+        if r == 200:
+            results = json.loads(response.content)
+            num_results = results['num_results']
+            num_pages = results['num_pages']
+            logging.info(f'Here is the num of pages for {_id} id - {num_pages} pages')
+
+            if num_results == 0:
+                # Assessment ID has returned no results
+                d = [_id, standard_or_no_standard, r, '', num_pages, num_results]
+                logging_list.append(d)
+                logging.info(f'Results are NOT present for _id {_id}, num_results {num_results}, page {page}')
+                break  # Exit the loop as there are no results
+            else:
+                logging.info(f'Results are present for _id {_id}, num_results {num_results}, page {page}')
+                # Convert results of the current page to DataFrame and append to the list
+                df_page_results = pd.DataFrame(results['results'])
+                df_page_results = df_page_results.sort_values(by='date_taken')
+                df_page_results.reset_index(drop=True, inplace=True)
+                df_page_results['percent_correct'] = df_page_results['percent_correct'].astype(float).round().astype(int)
+                df_page_results['date_taken'] = pd.to_datetime(df_page_results['date_taken'])
+                df_page_results['Standard_No_Standard'] = standard_or_no_standard
+
+                # Append the current page's DataFrame to the results list
+                df_results_list.append(df_page_results)
+
+                # Store assessment details
+                if page == 1:  # Get title and test dates only from the first page
+                    title = df_page_results.iloc[0]['title']
+                    d = [_id, standard_or_no_standard, r, title, num_pages, num_results]
+                    logging_list.append(d)
+
+        else:
+            # If API call is not successful
+            logging.info(f'API call was not succesful for {_id}')
+            d = [_id, standard_or_no_standard, r, '', num_pages, num_results]
+            logging_list.append(d)
+            break  
+
+        # Check if we've retrieved all pages
+        if page >= num_pages:
+            logging.info(f'Completed fetching for assessment ID {_id}.')
+            break
+
+        # Move to the next page
+        page += 1
+        url_ext = f'AssessmentAggregateStudentResponses{"Standard" if standard_or_no_standard == "Standard" else ""}/{url_args}'
+        logging.info(f'Here is the url_ext for the next page {url_ext}')
+
+    # Concatenate all DataFrames in the list into a single DataFrame
+    df_result = pd.concat(df_results_list, ignore_index=True) if df_results_list else pd.DataFrame()
+    t = pd.DataFrame(logging_list, columns=['Assessment_ID', 'Standard_No_Standard', 'Status_Code', 'Assessment_Name', 'Num_of_Pages', 'Num_Of_Tests'])
+
+    return df_result, t
+
+
+
 
 
 
@@ -143,6 +208,65 @@ def loop_through_assessment_scores(access_token, id_list, standard_or_no_standar
     test_results['last_update'] = pd.Timestamp.today().date()
     test_results = test_results.reset_index(drop = True)
 
-    logging.info(f'Returniing the frame and log for loop_through_assessment_scores {standard_or_no_standard}')
+    logging.info(f'Returning the frame and log for loop_through_assessment_scores {standard_or_no_standard}')
  
     return(test_results, log_results)
+
+
+
+
+# def get_all_assessments_responses_grouped(access_token, _id):
+#     # Set the initial page and an empty DataFrame to store all results
+#     page = 1
+#     all_results = pd.DataFrame()
+
+#     # Base URL and headers for API requests
+#     url_ext = 'AssessmentAggregateStudentResponsesGroup/?page={}&assessment_id={_id}&limit=5000'
+#     headers = {
+#         "Authorization": f"Bearer {access_token}"
+#     }
+
+#      #To ensure all pages are looped through properly
+#     while True:
+#         # Make the API request with the current page number
+#         response = requests.get(base_url_illuminate + url_ext.format(page), headers=headers)
+#         results = json.loads(response.content)
+
+#         # Check if the response is successful
+#         if response.status_code != 200:
+#             print(f"Error fetching page {page}: {response.status_code}")
+#             break
+
+#         # Convert the results of the current page to a DataFrame and append to all_results
+#         page_results = pd.DataFrame(results['results'])
+#         all_results = pd.concat([all_results, page_results], ignore_index=True)
+
+#         # Check if we've retrieved all pages
+#         if page >= results['num_pages']:
+#             logging.info(f'Looped through {page} pages. Results for function getting_all_assessments_responses_grouped output into results frame')
+#             break
+
+#         # Move to the next page
+#         page += 1
+    
+#     return(all_results)
+
+
+# def loop_through_assessment_responses_grouped(access_token, id_list):
+
+#     print(f'The length of the ID_list is {len(id_list)}')
+
+#     df_list = []
+ 
+#     # Iterate over the list of IDs and append df and t to their respective lists
+#     for _id in id_list: #Coming from config
+#         df  = get_all_assessments_responses_grouped(access_token, _id)
+#         df_list.append(df)
+        
+#     assessment_responses_grouped = pd.concat(df_list)
+#     assessment_responses_grouped['last_update'] = pd.Timestamp.today().date()
+#     assessment_responses_grouped = assessment_responses_grouped.reset_index(drop = True)
+
+#     logging.info(f'Returning the frame for loop_through_assessment_scores_grouped with {len(assessment_responses_grouped)} rows')
+ 
+#     return(assessment_responses_grouped)
