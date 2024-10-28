@@ -1,6 +1,7 @@
 import requests
 import time
 import logging
+from airflow.exceptions import AirflowException
 from .config import *
 
 
@@ -22,6 +23,7 @@ def get_access_token():
         logging.info('Calling API token endpoint')
     except Exception as e:
         logging.error(f'Unable to get API token succesfully due to {e}')
+        raise AirflowException(f"Error occurred while getting API token: {e}")
     
     if response.status_code == 200:
         logging.info('Succesfully retrieved API token')

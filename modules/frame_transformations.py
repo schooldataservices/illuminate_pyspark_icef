@@ -1,4 +1,5 @@
 from .assessments_endpoints import *
+from airflow.exceptions import AirflowException
 
 
 
@@ -10,6 +11,7 @@ def alter_test_results_frame(access_token, test_results):
         logging.info('Succesfully retrieved all assessments to add in grade levels to test_results frame')
     except Exception as e:
         logging.error(f'Unable to get all assessments due to {e}')
+        raise AirflowException(f"Error occurred while getting API token: {e}")
 
     grade_levels = assessments[['assessment_id', 'grade_levels']].drop_duplicates()
     test_results = pd.merge(test_results, grade_levels, on='assessment_id', how='left')
