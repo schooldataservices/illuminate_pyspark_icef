@@ -1,7 +1,7 @@
 import sys
 import os
 import logging
-working_dir = os.path.join(os.environ['AIRFLOW_HOME'], 'git_directory/ICEF_Illuminate')
+working_dir = os.path.join(os.environ['AIRFLOW_HOME'], 'git_directory/Illuminate')
 sys.path.append(working_dir)
 
 import pandas as pd
@@ -15,9 +15,6 @@ from modules.assessments_endpoints import *
 from modules.frame_transformations import *
 from modules.config import base_url_illuminate, assessment_id_list
 
-# Set working directory
-working_dir = os.path.join(os.environ['AIRFLOW_HOME'], 'git_directory/ICEF_Illuminate')
-sys.path.append(working_dir)
 
 args = {
     'owner': 'airflow',
@@ -53,14 +50,14 @@ with DAG(
             test_results_standard, log_results_standard = loop_through_assessment_scores(access_token, assessment_id_list, 'Standard')
             test_results_no_standard, log_results_no_standard = loop_through_assessment_scores(access_token, assessment_id_list, 'No_Standard')
             
-            # Combine results
-            test_results = pd.concat([test_results_standard, test_results_no_standard])
-            test_results_view = create_test_results_view(test_results, access_token, '23-24') #add in grade level col, string matching
+        
+            test_results_view = create_test_results_view(test_results_standard, access_token, '23-24') #add in grade level col, string matching
             logging.info("Assessment results fetched and processed.")
             
             os.makedirs(save_path, exist_ok=True)
 
-            send_to_local(save_path, test_results, 'assessment_results.csv')
+            send_to_local(save_path, test_results_standard, 'assessment_results_standard.csv')
+            send_to_local(save_path, test_results_no_standard, 'assessment_results_no_standard.csv')
             send_to_local(save_path, test_results_group, 'assessment_results_group.csv')
             send_to_local(save_path, test_results_view, 'assessment_results_view.csv')
 
@@ -75,7 +72,7 @@ with DAG(
         task_id='get_assessment_results',
         python_callable=get_assessment_results,
         op_kwargs={
-            'save_path' : '/home/samuel_taylor/illuminate'
+            'save_path' : '/home/g2015samtaylor/illuminate'
         }
     )
 
