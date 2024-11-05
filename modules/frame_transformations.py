@@ -46,6 +46,16 @@ def add_in_curriculum_unit_col(df):   #Checkpoints currently do not have anythin
     return(df)
 
 
+def create_test_type_column(frame):
+    frame['test_type'] = frame['title'].apply(
+        lambda x: 'checkpoint' if 'checkpoint' in str(x).lower()
+        else 'assessment' if 'assessment' in str(x).lower()
+        else 'unknown'
+    )
+    return frame
+
+
+
 def create_test_results_view(test_results, access_token, SY):
 
     test_results = add_in_grade_levels(test_results, access_token)
@@ -53,14 +63,16 @@ def create_test_results_view(test_results, access_token, SY):
 
     test_results['year'] = SY
 
+    test_results['test_type'] = ''
+    test_results = create_test_type_column(test_results)
+
     #Cut down cols, and change naming col names
     test_results.loc[:, 'proficiency'] = test_results['performance_band_level'] + ' ' + test_results['performance_band_label'] #add in proficiency column
-    test_results = test_results[['year', 'date_taken', 'grade_levels', 'local_student_id', 'curriculum', 'unit', 'title', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
+    test_results = test_results[['year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
 
     test_results = test_results.rename(columns={'grade_levels': 'grade',
-                    'title': 'assessment_name',
-                    'percent_correct': 'score'
-                   })
+                                                'percent_correct': 'score'
+                                                  })
     
     return(test_results)
 
