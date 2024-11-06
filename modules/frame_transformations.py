@@ -68,11 +68,13 @@ def create_test_results_view(test_results, access_token, SY):
 
     #Cut down cols, and change naming col names
     test_results.loc[:, 'proficiency'] = test_results['performance_band_level'] + ' ' + test_results['performance_band_label'] #add in proficiency column
-    test_results = test_results[['year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
+    test_results = test_results[[ 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
 
     test_results = test_results.rename(columns={'grade_levels': 'grade',
                                                 'percent_correct': 'score'
                                                   })
+    #changes occurs in place
+    test_results.loc[test_results['grade'] == 'K', 'grade'] = 0
     
     return(test_results)
 
@@ -87,3 +89,13 @@ def send_to_local(save_path, frame, frame_name):
 
 
 
+
+# Columns unique to test_results_no_standard: {'version', 'version_label'}
+# Columns unique to test_results_standard: {'academic_benchmark_guid', 'standard_code', 'standard_description'}
+
+def bring_together_test_results(test_results_no_standard, test_results_standard):
+
+    df = pd.concat([test_results_standard, test_results_no_standard])
+    df['standard_code'] = df['standard_code'].fillna('percent')
+
+    return(df)
