@@ -107,27 +107,28 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard):
         "Authorization": f"Bearer {access_token}"
     }
 
-    url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
-
-    # Determine the endpoint based on the standard_or_no_standard parameter
-    if standard_or_no_standard == 'No_Standard':
-        url_ext = f'AssessmentAggregateStudentResponses/{url_args}'
-    elif standard_or_no_standard == 'Standard':
-        url_ext = f'AssessmentAggregateStudentResponsesStandard/{url_args}'
-    elif standard_or_no_standard == 'Group':
-        url_ext = f'AssessmentAggregateStudentResponsesGroup/{url_args}'
-    else:
-        print('Wrong variable for standard_or_no_standard')
-        return None, None  # Exit the function if the parameter is incorrect
-
     while True:
-        # Make the API request with the current page number
+        # Update the URL arguments to reflect the current page number
+        url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
+
+        # Determine the endpoint based on the standard_or_no_standard parameter
+        if standard_or_no_standard == 'No_Standard':
+            url_ext = f'AssessmentAggregateStudentResponses/{url_args}'
+        elif standard_or_no_standard == 'Standard':
+            url_ext = f'AssessmentAggregateStudentResponsesStandard/{url_args}'
+        elif standard_or_no_standard == 'Group':
+            url_ext = f'AssessmentAggregateStudentResponsesGroup/{url_args}'
+        else:
+            print('Wrong variable for standard_or_no_standard')
+            return None, None  # Exit the function if the parameter is incorrect
+
+        # Log the complete URL and make the API request
         logging.info(base_url_illuminate + url_ext)
         response = requests.get(base_url_illuminate + url_ext, headers=headers)
         r = response.status_code
         logging.info(f'The status code for assessment_id {_id} is {r}')
 
-        # Log the status code for the current page request
+        # Handle successful API response
         if r == 200:
             results = json.loads(response.content)
             num_results = results['num_results']
@@ -135,46 +136,42 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard):
             logging.info(f'Here is the num of pages for {_id} id - {num_pages} pages')
 
             if num_results == 0:
-                # Assessment ID has returned no results
+                # Log and exit if no results are found
                 d = [_id, standard_or_no_standard, r, '', num_pages, num_results]
                 logging_list.append(d)
                 logging.info(f'Results are NOT present for _id {_id}, num_results {num_results}, page {page}')
-                break  # Exit the loop as there are no results
+                break
             else:
+                # Process and store the results
                 logging.info(f'Results are present for _id {_id}, num_results {num_results}, page {page}')
-                # Convert results of the current page to DataFrame and append to the list
                 df_page_results = pd.DataFrame(results['results'])
                 df_page_results = df_page_results.sort_values(by='date_taken')
                 df_page_results.reset_index(drop=True, inplace=True)
                 df_page_results['percent_correct'] = df_page_results['percent_correct'].astype(float).round().astype(int)
                 df_page_results['date_taken'] = pd.to_datetime(df_page_results['date_taken'])
                 df_page_results['Standard_No_Standard'] = standard_or_no_standard
-
-                # Append the current page's DataFrame to the results list
                 df_results_list.append(df_page_results)
 
-                # Store assessment details
-                if page == 1:  # Get title and test dates only from the first page
+                if page == 1:  # Record details from the first page if there are results
                     title = df_page_results.iloc[0]['title']
                     d = [_id, standard_or_no_standard, r, title, num_pages, num_results]
                     logging_list.append(d)
-
         else:
-            # If API call is not successful
-            logging.info(f'API call was not succesful for {_id}')
+            # Log unsuccessful API call and exit
+            num_pages = 0
+            num_results = 0
+            logging.info(f'API call was not successful for {_id}')
             d = [_id, standard_or_no_standard, r, '', num_pages, num_results]
             logging_list.append(d)
-            break  
+            break
 
-        # Check if we've retrieved all pages
+        # Check if all pages have been retrieved
         if page >= num_pages:
             logging.info(f'Completed fetching for assessment ID {_id}.')
             break
 
-        # Move to the next page
+        # Increment the page number for the next iteration
         page += 1
-        url_ext = f'AssessmentAggregateStudentResponses{"Standard" if standard_or_no_standard == "Standard" else ""}/{url_args}'
-        logging.info(f'Here is the url_ext for the next page {url_ext}')
 
     # Concatenate all DataFrames in the list into a single DataFrame
     df_result = pd.concat(df_results_list, ignore_index=True) if df_results_list else pd.DataFrame()
@@ -211,6 +208,23 @@ def loop_through_assessment_scores(access_token, id_list, standard_or_no_standar
     logging.info(f'Returning the frame and log for loop_through_assessment_scores {standard_or_no_standard}')
  
     return(test_results, log_results)
+
+
+def add_missing_assessments(assessment_id_list, new_ids):
+    """
+    Adds IDs from new_ids to assessment_id_list if they are not already present.
+
+    Parameters:
+        assessment_id_list (list): The list of existing assessment IDs.
+        new_ids (list): The list of new assessment IDs to check and add if missing.
+
+    Returns:
+        list: Updated list with all unique assessment IDs.
+    """
+    for assessment_id in new_ids:
+        if assessment_id not in assessment_id_list:
+            assessment_id_list.append(assessment_id)
+    return assessment_id_list
 
 
 
