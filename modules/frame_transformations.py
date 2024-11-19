@@ -90,6 +90,20 @@ def add_in_curriculum_col(df):
     #Impossible to string match this one - assessment id 115533 (Grade 8 Interim Assessment #1)
     df.loc[df['assessment_id'] == '115533', 'curriculum'] = 'Science'
 
+    # Interim Assessment #1 | Grade 11 | U.S. History
+    df.loc[df['assessment_id'] == '141493', 'curriculum'] = 'US History'
+
+    df.loc[df['assessment_id'] == '141492', 'curriculum'] = 'World History'
+
+    #Environmental Science Interim Assessment #1
+    df.loc[df['assessment_id'] == '141508', 'curriculum'] = 'Environmental Science'
+
+    #Algebra 1 IA #1 (Sequences + IM) 
+    df.loc[df['assessment_id'] == '141441', 'curriculum'] = 'Algebra I'
+
+    #Biology for Freshman, otherwise Anatomy
+    df.loc[(df['assessment_id'] == '141506') & (df['grade_levels'] == 9), 'curriculum'] = 'Biology'
+    df.loc[(df['assessment_id'] == '141506') & (df['grade_levels'] != 9), 'curriculum'] = 'Anatomy'
 
     return df
 
