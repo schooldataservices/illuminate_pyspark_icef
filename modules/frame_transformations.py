@@ -7,10 +7,10 @@ import re
 
 def add_in_grade_levels(test_results):
 
-    temp_path = r'C:\Users\samuel.taylor\Downloads\Student_Rosters.txt'
+    # temp_path = r'C:\Users\samuel.taylor\Downloads\Student_Rosters.txt'
     vm_path = '/home/icef/powerschool/Student_Rosters.txt'
 
-    GL_mapping = pd.read_table(temp_path)[['STUDENTS.Student_Number', 'STUDENTS.Grade_Level']]
+    GL_mapping = pd.read_table(vm_path)[['STUDENTS.Student_Number', 'STUDENTS.Grade_Level']]
     GL_mapping = GL_mapping.rename(columns={'STUDENTS.Student_Number': 'local_student_id', 
                                             'STUDENTS.Grade_Level': 'grade_levels'})
     GL_mapping['local_student_id'] = GL_mapping['local_student_id'].astype(str)
