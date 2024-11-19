@@ -15,36 +15,51 @@ def get_all_assessments_metadata(access_token):
     page = 1
     all_results = pd.DataFrame()
 
-    # Base URL and headers for API requests
-    url_ext = 'Assessments/?page={}&limit=1000'
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-
     #To ensure all pages are looped through properly
     while True:
-        # Make the API request with the current page number
-        response = requests.get(base_url_illuminate + url_ext.format(page), headers=headers)
-        results = json.loads(response.content)
-    
-        # Check if the response is successful
-        if response.status_code != 200:
-            print(f"Error fetching page {page}: {response.status_code}")
+
+        #Base URL and headers for API requests
+        url_ext = f'Assessments/?page={page}&limit=1000'
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        logging.info(f'Fetching data from {base_url_illuminate + url_ext}')
+
+        try:
+            # Make the API request with the current page number
+            response = requests.get(base_url_illuminate + url_ext.format(url_ext), headers=headers)
+            response.raise_for_status()  # Raise exception for HTTP errors
+            
+            results = json.loads(response.content)
+
+            # Check if the required keys are in the response
+            if 'results' not in results or 'num_pages' not in results:
+                logging.error(f"Unexpected API response format: {results}")
+                break
+
+            logging.info(f'Here is the total num of pages on this endpoint {results["num_pages"]}')
+
+            # Convert the results of the current page to a DataFrame and append to all_results
+            page_results = pd.DataFrame(results['results'])
+            all_results = pd.concat([all_results, page_results], ignore_index=True)
+
+            # Check if we've retrieved all pages
+            if page >= results['num_pages']:
+                logging.info(f'Looped through {page} pages. Results for func get_all_assessments_metadata output into DataFrame')
+                break
+
+            # Move to the next page
+            page += 1
+
+        except requests.RequestException as e:
+            logging.error(f"Error fetching page {page}: {e}")
+            break
+        except KeyError as e:
+            logging.error(f"Key error: {e}")
             break
 
-        # Convert the results of the current page to a DataFrame and append to all_results
-        page_results = pd.DataFrame(results['results'])
-        all_results = pd.concat([all_results, page_results], ignore_index=True)
 
-        # Check if we've retrieved all pages
-        if page >= results['num_pages']:
-            logging.info(f'Looped through {page} pages. Results for func get_all_assessments_metadata output into DataFrame')
-            break
-
-        # Move to the next page
-        page += 1
-    
-    return(all_results)
+    assessment_id_list = list(all_results['assessment_id'].unique())
+    return(all_results, assessment_id_list)
 
 
 def get_single_assessment(access_token, _id, standard_or_no_standard):
