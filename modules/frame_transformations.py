@@ -21,7 +21,7 @@ import re
 #     return(test_results)
 
 def add_in_grade_levels(test_results):
-    GL_mapping = pd.read_table('/home/icef/powerschool/Student Rosters.txt')[['STUDENTS.Student_Number', 'STUDENTS.Grade_Level']]
+    GL_mapping = pd.read_table('/home/icef/powerschool/Student_Rosters.txt')[['STUDENTS.Student_Number', 'STUDENTS.Grade_Level']]
     GL_mapping = GL_mapping.rename(columns={'STUDENTS.Student_Number': 'local_student_id', 
                                             'STUDENTS.Grade_Level': 'grade_levels'})
     GL_mapping['local_student_id'] = GL_mapping['local_student_id'].astype(str)
@@ -33,9 +33,9 @@ def add_in_grade_levels(test_results):
 
 def add_in_curriculum_unit_col(df):
     curriculum_dict = {
-        'IM': 'IM',
+        'IM': 'Math',
         'Science': 'Science',
-        'Into Reading': 'Into Reading',
+        'Into Reading': 'ELA',
         'History': 'History',
         'Geometry': 'Geometry',
         'English': 'English',
@@ -52,7 +52,8 @@ def add_in_curriculum_unit_col(df):
         'ELA': 'ELA',
         'Math': 'Math',
         'Quantitative': 'Math',
-        'Checkpoint': 'Checkpoint'
+        'Checkpoint': 'Checkpoint',
+        'Social Studies': 'History'
     }
 
     # Initialize the Curriculum column with empty strings
@@ -76,6 +77,20 @@ def add_in_curriculum_unit_col(df):
 
     #single interim value in unit needs to align with others
     df['unit'] = df['unit'].replace('Interim', 'Interim 1')
+
+    unit_col_sorting = {'Module 1':  '1',
+                    'Module 2' : '2',
+                    'Module 3' : '3',
+                    'Interim 1' : '4',
+                    'Unit 1' : '1',
+                    'Unit 2': '2',
+                    'Unit 3' : '3'}
+    
+    df['unit_labels'] = df['unit'].map(unit_col_sorting)
+
+    #manual curriculum field insertion based on assessment id 115533
+    df.loc[df['assessment_id'] == 115533, 'curriculum'] = 'Science'
+
 
     return df
 
@@ -103,7 +118,7 @@ def create_test_results_view(test_results, SY):
 
     #Cut down cols, and change naming col names
     test_results.loc[:, 'proficiency'] = test_results['performance_band_level'] + ' ' + test_results['performance_band_label'] #add in proficiency column
-    test_results = test_results[[ 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
+    test_results = test_results[[ 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'unit_labels', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
 
     test_results = test_results.rename(columns={'grade_levels': 'grade',
                                                 'percent_correct': 'score'

@@ -211,76 +211,39 @@ def loop_through_assessment_scores(access_token, id_list, standard_or_no_standar
 
 
 def add_missing_assessments(assessment_id_list, new_ids):
-    """
-    Adds IDs from new_ids to assessment_id_list if they are not already present.
-
-    Parameters:
-        assessment_id_list (list): The list of existing assessment IDs.
-        new_ids (list): The list of new assessment IDs to check and add if missing.
-
-    Returns:
-        list: Updated list with all unique assessment IDs.
-    """
+    unique_assessment_ids = set(assessment_id_list)  # Convert to set for faster lookups
     for assessment_id in new_ids:
-        if assessment_id not in assessment_id_list:
-            assessment_id_list.append(assessment_id)
-    return assessment_id_list
+        if assessment_id not in unique_assessment_ids:
+            unique_assessment_ids.add(assessment_id)
+            logging.info(f'Adding missing assessment_id - {assessment_id}')
+    return list(unique_assessment_ids)  # Convert back to list
 
 
+# RAW CALL
+# page = 1
+# base_url_illuminate = 'https://icefps.illuminateed.com/live/rest_server.php/Api/'
 
+# access_token, expires_in = get_access_token()
 
-# def get_all_assessments_responses_grouped(access_token, _id):
-#     # Set the initial page and an empty DataFrame to store all results
-#     page = 1
-#     all_results = pd.DataFrame()
+# headers = {
+#     "Authorization": f"Bearer {access_token}"
+# }
 
-#     # Base URL and headers for API requests
-#     url_ext = 'AssessmentAggregateStudentResponsesGroup/?page={}&assessment_id={_id}&limit=5000'
-#     headers = {
-#         "Authorization": f"Bearer {access_token}"
-#     }
+# _id = '115939'
+# standard_or_no_standard = 'Standard'
 
-#      #To ensure all pages are looped through properly
-#     while True:
-#         # Make the API request with the current page number
-#         response = requests.get(base_url_illuminate + url_ext.format(page), headers=headers)
-#         results = json.loads(response.content)
+# url_ext = f'Assessment/{_id}/View/'
+# url_ext = f'PoolAssessmentAggregateStudentResponses/?page={1}'
 
-#         # Check if the response is successful
-#         if response.status_code != 200:
-#             print(f"Error fetching page {page}: {response.status_code}")
-#             break
+# url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
 
-#         # Convert the results of the current page to a DataFrame and append to all_results
-#         page_results = pd.DataFrame(results['results'])
-#         all_results = pd.concat([all_results, page_results], ignore_index=True)
+# # Determine the endpoint based on the standard_or_no_standard parameter
+# if standard_or_no_standard == 'No_Standard':
+#     url_ext = f'AssessmentAggregateStudentResponses/{url_args}'
+# elif standard_or_no_standard == 'Standard':
+#     url_ext = f'AssessmentAggregateStudentResponsesStandard/{url_args}'
+# elif standard_or_no_standard == 'Group':
+#     url_ext = f'AssessmentAggregateStudentResponsesGroup/{url_args}'
 
-#         # Check if we've retrieved all pages
-#         if page >= results['num_pages']:
-#             logging.info(f'Looped through {page} pages. Results for function getting_all_assessments_responses_grouped output into results frame')
-#             break
-
-#         # Move to the next page
-#         page += 1
-    
-#     return(all_results)
-
-
-# def loop_through_assessment_responses_grouped(access_token, id_list):
-
-#     print(f'The length of the ID_list is {len(id_list)}')
-
-#     df_list = []
- 
-#     # Iterate over the list of IDs and append df and t to their respective lists
-#     for _id in id_list: #Coming from config
-#         df  = get_all_assessments_responses_grouped(access_token, _id)
-#         df_list.append(df)
-        
-#     assessment_responses_grouped = pd.concat(df_list)
-#     assessment_responses_grouped['last_update'] = pd.Timestamp.today().date()
-#     assessment_responses_grouped = assessment_responses_grouped.reset_index(drop = True)
-
-#     logging.info(f'Returning the frame for loop_through_assessment_scores_grouped with {len(assessment_responses_grouped)} rows')
- 
-#     return(assessment_responses_grouped)
+# response = requests.get(base_url_illuminate + url_ext, headers=headers)
+# r = response.status_code
