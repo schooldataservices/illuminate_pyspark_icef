@@ -146,9 +146,41 @@ def create_test_results_view(test_results, SY):
     return(test_results)
 
 
+def append_prior_year(prior_year_file_path, frame, prior_year_file_name):
+
+    prior_year_file_path = os.path.join(prior_year_file_path, prior_year_file_name)
+
+    # Check if prior year file exists
+    if os.path.exists(prior_year_file_path):
+        logging.info(f'Prior year file found at {prior_year_file_path}. Appending data.')
+        # Read the prior year file into a DataFrame
+        prior_year_frame = pd.read_csv(prior_year_file_path, encoding='ISO-8859-1')
+        
+        # Append prior year data to the current frame
+        combined_frame = pd.concat([prior_year_frame, frame], ignore_index=True)
+        
+        # Optional: Remove duplicate rows if needed
+        combined_frame = combined_frame.drop_duplicates()
+        logging.info(f'Prior year data appended successfully.')
+
+        # Convert the column to datetime format
+        combined_frame['date_taken'] = pd.to_datetime(combined_frame['date_taken'])
+
+        # If you want to remove the time part and keep only the date
+        combined_frame['date_taken'] = combined_frame['date_taken'].dt.date
+
+    else:
+        logging.warning(f'Prior year file not found at {prior_year_file_path}. Using current frame only.')
+        combined_frame = frame
+
+    return combined_frame
+
+
+
 def send_to_local(save_path, frame, frame_name):
         
     if not frame.empty:
+
         frame.to_csv(os.path.join(save_path, frame_name), index=False)
         logging.info(f'{frame_name} saved to {save_path}')
     else:
