@@ -48,7 +48,7 @@ def get_assessment_results(save_path):
         # test_results_combined = append_prior_year(prior_year_file_path, test_results_combined,  'assessment_results_combined_2324.csv')
 
         send_to_local(save_path, test_results_group, 'assessment_results_group_2425.csv')
-        send_to_local(save_path, test_results_view, 'assessment_results_view_2425.csv')
+        send_to_local(save_path, test_results_view, 'assessment_results_2425.csv')
         send_to_local(save_path, test_results_combined, 'assessment_results_combined_2425.csv')
 
 
