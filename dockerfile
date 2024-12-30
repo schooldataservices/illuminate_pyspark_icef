@@ -20,4 +20,6 @@ CMD ["python", "illuminate_pipeline.py"]
 #To run locally
 # docker run --rm \
 #   -v /home/icef/powerschool/Student_Rosters.txt:/home/icef/powerschool/Student_Rosters.txt \
+#   -v /home/g2015samtaylor/illuminate:/home/g2015samtaylor/illuminate \
+#   -v /home/g2015samtaylor/views:/home/g2015samtaylor/views \
 #   illuminate-pipeline

@@ -133,7 +133,9 @@ def create_test_results_view(test_results, SY):
 
     #Add in proficiency col, re-order results, and change names
     test_results.loc[:, 'proficiency'] = test_results['performance_band_level'] + ' ' + test_results['performance_band_label'] #add in proficiency column
-    test_results = test_results[[ 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'unit_labels', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
+    test_results['data_source'] = 'illuminate'
+
+    test_results = test_results[['data_source', 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'unit_labels', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
 
     test_results = test_results.rename(columns={'grade_levels': 'grade',
                                                 'percent_correct': 'score'

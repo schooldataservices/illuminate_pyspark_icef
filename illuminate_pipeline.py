@@ -18,9 +18,8 @@ logging.basicConfig(
     force=True  # Ensures existing handlers are replaced
 )
 
-logging.info("\n\n------------- New Illuminate Operations Logging Instance")
 
-def get_assessment_results(save_path):
+def get_assessment_results(save_path, view_path):
     logging.info("\n\n------------- New Illuminate Operations Logging Instance")
    
     try:
@@ -47,9 +46,9 @@ def get_assessment_results(save_path):
         # test_results_view = append_prior_year(prior_year_file_path, test_results_view,  'assessment_results_view_2324.csv')
         # test_results_combined = append_prior_year(prior_year_file_path, test_results_combined,  'assessment_results_combined_2324.csv')
 
-        send_to_local(save_path, test_results_group, 'assessment_results_group_2425.csv')
-        send_to_local(save_path, test_results_view, 'assessment_results_2425.csv')
-        send_to_local(save_path, test_results_combined, 'assessment_results_combined_2425.csv')
+        send_to_local(save_path, test_results_group, 'assessment_results_group.csv')
+        send_to_local(save_path, test_results_combined, 'assessment_results_combined.csv')
+        send_to_local(view_path, test_results_view, 'illuminate_assessment_results.csv')
 
 
     except Exception as e:
@@ -57,4 +56,5 @@ def get_assessment_results(save_path):
         raise AirflowException("Failed to fetch and process assessment results")
 
 save_path = '/home/g2015samtaylor/illuminate'
-get_assessment_results(save_path)
+view_path = '/home/g2015samtaylor/views'
+get_assessment_results(save_path, view_path)
