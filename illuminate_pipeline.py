@@ -20,7 +20,8 @@ logging.basicConfig(
 
 
 def get_assessment_results(save_path, view_path, years_data, start_date, end_date_override=None):
-  
+    logging.info('\n\n-------------New Illuminate Operations Logging Instance')
+
     try:
         access_token, expires_in = get_access_token()
 
@@ -54,6 +55,8 @@ def get_assessment_results(save_path, view_path, years_data, start_date, end_dat
             send_to_local(view_path, test_results_view, 'illuminate_assessment_results.csv')
         else:
             raise ValueError(f'Unexpected value for years variable data {years_data}')
+        
+        send_to_local(save_path, assessments_df, 'assessments_metadata,csv')
         
         
 
