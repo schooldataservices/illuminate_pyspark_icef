@@ -62,12 +62,16 @@ def get_all_assessments_metadata(access_token):
     return(all_results, assessment_id_list)
 
 
-def get_single_assessment(access_token, _id, standard_or_no_standard):
+def get_single_assessment(access_token, _id, standard_or_no_standard, start_date, end_date_override=None):
     # Set the initial page and an empty DataFrame to store all results
+
+    effective_end_date = end_date_override if end_date_override else current_date
+
     page = 1
     all_results = pd.DataFrame()
 
-    url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
+    url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start={start_date}&date_taken_end={effective_end_date}'
+    
 
     # Determine the endpoint based on the standard_or_no_standard parameter
     if standard_or_no_standard == 'No_Standard':
@@ -77,6 +81,8 @@ def get_single_assessment(access_token, _id, standard_or_no_standard):
     else:
         print('Wrong variable for standard_or_no_standard')
         return None  # Exit the function if the parameter is incorrect
+    
+    logging.info(f'Here is the url_args for the get_single_asssessment function {url_ext}')
 
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -113,7 +119,10 @@ def get_single_assessment(access_token, _id, standard_or_no_standard):
 
 
 
-def get_assessment_scores(access_token, _id, standard_or_no_standard):
+def get_assessment_scores(access_token, _id, standard_or_no_standard, start_date, end_date_override=None):
+
+    effective_end_date = end_date_override if end_date_override else current_date
+
     # Initialize variables
     page = 1
     logging_list = []  # List to store logging information
@@ -122,9 +131,10 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard):
         "Authorization": f"Bearer {access_token}"
     }
 
+
     while True:
         # Update the URL arguments to reflect the current page number
-        url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
+        url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start={start_date}&date_taken_end={effective_end_date}'
 
         # Determine the endpoint based on the standard_or_no_standard parameter
         if standard_or_no_standard == 'No_Standard':
@@ -136,29 +146,32 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard):
         else:
             print('Wrong variable for standard_or_no_standard')
             return None, None  # Exit the function if the parameter is incorrect
-
-        # Log the complete URL and make the API request
-        logging.info(base_url_illuminate + url_ext)
+        
+        
+        logging.debug(base_url_illuminate + url_ext)
+        
         response = requests.get(base_url_illuminate + url_ext, headers=headers)
         r = response.status_code
-        logging.info(f'The status code for assessment_id {_id} is {r}')
+        logging.debug(f'The status code for assessment_id {_id} is {r}')
+       
+
 
         # Handle successful API response
         if r == 200:
             results = json.loads(response.content)
             num_results = results['num_results']
             num_pages = results['num_pages']
-            logging.info(f'Here is the num of pages for {_id} id - {num_pages} pages')
+            logging.debug(f'Here is the num of pages for {_id} id - {num_pages} pages')
 
             if num_results == 0:
                 # Log and exit if no results are found
                 d = [_id, standard_or_no_standard, r, '', num_pages, num_results]
                 logging_list.append(d)
-                logging.info(f'Results are NOT present for _id {_id}, num_results {num_results}, page {page}')
+                logging.debug(f'Results are NOT present for _id {_id}, num_results {num_results}, page {page}')
                 break
             else:
                 # Process and store the results
-                logging.info(f'Results are present for _id {_id}, num_results {num_results}, page {page}')
+                logging.debug(f'Results are present for _id {_id}, num_results {num_results}, page {page}')
                 df_page_results = pd.DataFrame(results['results'])
                 df_page_results = df_page_results.sort_values(by='date_taken')
                 df_page_results.reset_index(drop=True, inplace=True)
@@ -175,14 +188,14 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard):
             # Log unsuccessful API call and exit
             num_pages = 0
             num_results = 0
-            logging.info(f'API call was not successful for {_id}')
+            logging.error(f'API call was not successful for {_id}')
             d = [_id, standard_or_no_standard, r, '', num_pages, num_results]
             logging_list.append(d)
             break
 
         # Check if all pages have been retrieved
         if page >= num_pages:
-            logging.info(f'Completed fetching for assessment ID {_id}.')
+            logging.debug(f'Completed fetching for assessment ID {_id}.')
             break
 
         # Increment the page number for the next iteration
@@ -200,7 +213,7 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard):
 
 
 
-def loop_through_assessment_scores(access_token, id_list, standard_or_no_standard):
+def loop_through_assessment_scores(access_token, id_list, standard_or_no_standard, start_date, end_date_override=None):
 
     print(f'The length of the ID_list is {len(id_list)}')
 
@@ -209,7 +222,7 @@ def loop_through_assessment_scores(access_token, id_list, standard_or_no_standar
 
     # Iterate over the list of IDs and append df and t to their respective lists
     for _id in id_list: #Coming from config
-        df, t = get_assessment_scores(access_token, _id, standard_or_no_standard)
+        df, t = get_assessment_scores(access_token, _id, standard_or_no_standard, start_date, end_date_override)
         df_list.append(df)
         t_list.append(t)
         
@@ -262,3 +275,10 @@ def add_missing_assessments(assessment_id_list, new_ids):
 
 # response = requests.get(base_url_illuminate + url_ext, headers=headers)
 # r = response.status_code
+
+# --------
+#This is for standalone prior file that gets appended to current years constantly updated data
+# prior_year_file_path = '/home/g2015samtaylor/backups/illuminate'
+# test_results_group = append_prior_year(prior_year_file_path, test_results_group,  'assessment_results_group_2324.csv')
+# test_results_view = append_prior_year(prior_year_file_path, test_results_view,  'assessment_results_view_2324.csv')
+# test_results_combined = append_prior_year(prior_year_file_path, test_results_combined,  'assessment_results_combined_2324.csv')

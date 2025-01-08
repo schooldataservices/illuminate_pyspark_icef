@@ -2,3 +2,4 @@ config.py
 logs/
 *.pyc
 misssing_ids.csv
+*.csv

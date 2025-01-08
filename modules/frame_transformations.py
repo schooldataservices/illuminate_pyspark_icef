@@ -137,6 +137,8 @@ def create_test_results_view(test_results, SY):
 
     test_results = test_results[['data_source', 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'unit_labels', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count', 'last_update']]
 
+    #need a validation function on the percent_correct coming out to zero. Ensure there are points possible. Or could calc percent here. 
+
     test_results = test_results.rename(columns={'grade_levels': 'grade',
                                                 'percent_correct': 'score'
                                                   })
@@ -217,3 +219,60 @@ def bring_together_test_results(test_results_no_standard, test_results_standard)
 #     test_results = pd.merge(test_results, grade_levels, on='assessment_id', how='left')
 #     test_results = test_results.sort_values(by='date_taken')
 #     return(test_results)
+
+
+#fixing historical grade, unit, and curriculum column due to shortcomings on Students Rosters being limited ot this year
+
+# def manual_grade_unit_curriculum_fix():
+
+#     gl_fix = pd.read_csv('/home/g2015samtaylor/airflow/git_directory/Illuminate/modules/illuminate_historical_column_fixes_2324.csv')
+#     v = pd.read_csv('/home/g2015samtaylor/backups/illuminate/assessment_results_view_2324.csv')
+
+#     #drop columns in view in order to bring in new ones
+
+#     # subsidize cols down and change naming convention
+#     gl_fix = gl_fix[['title', 'updated "grade"', 'updated "unit"', 'updated "curriculum"']]
+
+#     gl_fix = gl_fix.rename(columns= {'updated "grade"': 'grade', 
+#                             'updated "unit"': 'unit', 
+#                             'updated "curriculum"': 'curriculum'})
+
+
+
+#     # Create dictionaries for each column in gl_fix based on the title, and map to the title, retain existing values as whatever was there prior
+
+#     col_list = ["grade", "unit", "curriculum"]
+
+#     for col in col_list:
+#         created_dict = dict(zip(gl_fix['title'], gl_fix[col]))
+
+#         v[col] = v['title'].map(created_dict).fillna(v[col])
+
+#     v.to_csv('//home/g2015samtaylor/views/illuminate_assessment_results_historical.csv', index=False)
+
+#     return(v)
+
+
+def merge_excel_with_assessments_master_on_title(access_token):
+
+
+    fixes = pd.read_csv('/home/g2015samtaylor/airflow/git_directory/Illuminate/illuminate_historical_column_fixes_2324.csv')
+    # v = pd.read_csv('/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv') 
+
+    fixes = fixes.rename(columns={'current "grade"': 'current grade',
+                        'updated "grade"': 'updated grade',
+                        'updated "curriculum"': 'updated curriculum'})
+
+    fixes = fixes[['title', 'current grade', 'updated grade', 'curriculum', 'updated curriculum']]
+
+    fixes['title'] = fixes['title'].str.strip()
+
+
+    #Need sepearate string matching for current grade
+    assessments_df, assessment_id_list = get_all_assessments_metadata(access_token)
+    assessments_df['title'] = assessments_df['title'].str.strip()
+
+    #Merge masters assessments frame on fixes to see what is missing 
+    temp = pd.merge(assessments_df, fixes, on='title', how='right', indicator=True)
+
+    return(temp, assessments_df)
