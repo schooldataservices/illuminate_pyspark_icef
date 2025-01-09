@@ -56,7 +56,7 @@ def get_assessment_results(save_path, view_path, years_data, start_date, end_dat
         else:
             raise ValueError(f'Unexpected value for years variable data {years_data}')
         
-        send_to_local(save_path, assessments_df, 'assessments_metadata,csv')
+        send_to_local(save_path, assessments_df, 'assessments_metadata.csv')
         
         
 
