@@ -35,7 +35,7 @@ def get_assessment_results(spark, save_path, view_path, years_data, start_date, 
         access_token, expires_in = get_access_token()
 
         assessments_df, assessment_id_list = get_all_assessments_metadata(access_token)
-        assessment_id_list = assessment_id_list[:100] #for testing
+        # assessment_id_list = assessment_id_list[:100] #for testing
         missing_ids_from_metadata = ['114845', '141498'] # Add assessments that are not present in assessements metadata
         assessment_id_list = list(set(assessment_id_list + missing_ids_from_metadata))
         logging.info(f'Here is the length of the assessment_id_list variable {len(assessment_id_list)}')
