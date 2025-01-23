@@ -66,10 +66,8 @@ def get_assessment_results(spark, save_path, view_path, years_data, start_date, 
             raise ValueError(f'Unexpected value for years variable data {years_data}')
         
         #No matter what update assessments_metadata file to display available assessments
-        send_to_local(save_path, assessments_df, 'assessments_metadata,csv')
+        send_to_local(save_path, assessments_df, 'assessments_metadata.csv')
         
-        
-
 
     except Exception as e:
         logging.error(f"Error fetching assessment results: {e}")
@@ -81,4 +79,5 @@ get_assessment_results(spark,
                         view_path = '/home/g2015samtaylor/views',
                         years_data = '24-25',
                         start_date = '2024-07-01')
+
 #end_date should default to todays_date if not specified

@@ -205,74 +205,39 @@ def bring_together_test_results(test_results_no_standard, test_results_standard)
     return(df)
 
 
-# def add_in_grade_levels(test_results, access_token):
-
-#     #add in grade_level column
-#     try:
-#         assessments = get_all_assessments_metadata(access_token) 
-#         logging.info('Succesfully retrieved all assessments to add in grade levels to test_results frame')
-#     except Exception as e:
-#         logging.error(f'Unable to get all assessments due to {e}')
-#         raise AirflowException(f"Error occurred while getting API token: {e}")
-
-#     grade_levels = assessments[['assessment_id', 'grade_levels']].drop_duplicates()
-#     test_results = pd.merge(test_results, grade_levels, on='assessment_id', how='left')
-#     test_results = test_results.sort_values(by='date_taken')
-#     return(test_results)
-
-
-#fixing historical grade, unit, and curriculum column due to shortcomings on Students Rosters being limited ot this year
-
-# def manual_grade_unit_curriculum_fix():
-
-#     gl_fix = pd.read_csv('/home/g2015samtaylor/airflow/git_directory/Illuminate/modules/illuminate_historical_column_fixes_2324.csv')
-#     v = pd.read_csv('/home/g2015samtaylor/backups/illuminate/assessment_results_view_2324.csv')
-
-#     #drop columns in view in order to bring in new ones
-
-#     # subsidize cols down and change naming convention
-#     gl_fix = gl_fix[['title', 'updated "grade"', 'updated "unit"', 'updated "curriculum"']]
-
-#     gl_fix = gl_fix.rename(columns= {'updated "grade"': 'grade', 
-#                             'updated "unit"': 'unit', 
-#                             'updated "curriculum"': 'curriculum'})
 
 
 
-#     # Create dictionaries for each column in gl_fix based on the title, and map to the title, retain existing values as whatever was there prior
-
-#     col_list = ["grade", "unit", "curriculum"]
-
-#     for col in col_list:
-#         created_dict = dict(zip(gl_fix['title'], gl_fix[col]))
-
-#         v[col] = v['title'].map(created_dict).fillna(v[col])
-
-#     v.to_csv('//home/g2015samtaylor/views/illuminate_assessment_results_historical.csv', index=False)
-
-#     return(v)
+def fix_historical_columns(access_token, path_fixes_file, historical_view_path):
 
 
-def merge_excel_with_assessments_master_on_title(access_token):
+    fixes = pd.read_csv(path_fixes_file)
+    v = pd.read_csv(historical_view_path) 
 
+    #remove checkpoints for view not needed for historical
+    v = v.loc[~v['title'].str.contains('checkpoint', case=False)]
 
-    fixes = pd.read_csv('/home/g2015samtaylor/airflow/git_directory/Illuminate/illuminate_historical_column_fixes_2324.csv')
-    # v = pd.read_csv('/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv') 
+    print(f'The length of the v frame is {len(v)} rows')
 
-    fixes = fixes.rename(columns={'current "grade"': 'current grade',
-                        'updated "grade"': 'updated grade',
-                        'updated "curriculum"': 'updated curriculum'})
+    temp = pd.merge(v, fixes, how='left', on='assessment_id', suffixes=['', '_fixes'], indicator=True)
 
-    fixes = fixes[['title', 'current grade', 'updated grade', 'curriculum', 'updated curriculum']]
+    # Apply logic to combine the columns
+    temp['title'] = temp.apply(lambda row: row['title_fixes'] if pd.notna(row['title_fixes']) else row['title'], axis=1)
+    temp['grade'] = temp.apply(lambda row: row['grade_fixes'] if pd.notna(row['grade_fixes']) else row['grade'], axis=1)
+    temp['curriculum'] = temp.apply(lambda row: row['curriculum_fixes'] if pd.notna(row['curriculum_fixes']) else row['curriculum'], axis=1)
 
-    fixes['title'] = fixes['title'].str.strip()
+    temp = temp.drop(columns=['title_fixes', 'grade_fixes', 'curriculum_fixes', 'unit_fixes', '_merge'])
 
+    temp = temp.drop_duplicates()
 
-    #Need sepearate string matching for current grade
-    assessments_df, assessment_id_list = get_all_assessments_metadata(access_token)
-    assessments_df['title'] = assessments_df['title'].str.strip()
+    print(f'the length after the merge is {len(temp)} rows')
+    
+    temp.to_csv('/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv', index=False)
 
-    #Merge masters assessments frame on fixes to see what is missing 
-    temp = pd.merge(assessments_df, fixes, on='title', how='right', indicator=True)
+    return(temp)
 
-    return(temp, assessments_df)
+# path_fixes_file = '/home/g2015samtaylor/airflow/git_directory/Illuminate/modules/illuminate_historical_column_fixes_2324.csv'
+# historical_view_path = '/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv'
+# access_token, expires_in = get_access_token()
+# h = fix_historical_columns(access_token, path_fixes_file, historical_view_path)
+# h.to_csv('/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv')
