@@ -21,20 +21,28 @@ def add_in_grade_levels(test_results):
 def add_in_unit_col(df):
 
     # Extract 'Unit', 'Interim', or 'Module' with a number and populate the 'unit' column
-    df['unit'] = df['title'].str.extract(r'(Interim(?: Assessment)?(?: #?\d+)?|Interim \d+|Unit \d+|Module \d+)', expand=False)
+    df['unit'] = df['title'].str.extract(r'(Interim(?: Assessment)?(?: #?\d+| \d+[A-Z]*|[_ ](?:PT_)?\d+)?|Unit \d+|Final|Module \d+)', expand=False)
 
     #Exception for the IA title standalone, #Remove the assessment and hastag form the unit columns
     df.loc[df['title'].str.contains(rf'\b{re.escape("IA")}\b', case=False), 'unit'] = 'Interim 1'
     df['unit'] = df['unit'].str.replace(r'Assessment|#', '', regex=True).str.strip()
     df['unit'] = df['unit'].str.replace(r'\s+', ' ', regex=True)
+    #Clean up the interims further from PT, underscores, random spaces
+    df['unit'] =  df['unit'].apply(lambda x: re.sub(r'Interim[\s_]+(?:PT_)?(\d+)', r'Interim \1', str(x).strip()))
 
     #single interim value in unit needs to align with others
     df['unit'] = df['unit'].replace('Interim', 'Interim 1')
+
+    #might need changes eventually
+    df['unit'] = df['unit'].replace('Final', 'Final 1')
+    
 
     unit_col_sorting = {'Module 1':  '1',
                         'Module 2' : '2',
                         'Module 3' : '3',
                         'Interim 1' : '4',
+                        'Interim 2': '5',
+                        'Final 1': '6',
                         'Unit 1' : '1',
                         'Unit 2': '2',
                         'Unit 3' : '3'}
@@ -123,7 +131,7 @@ def create_test_type_column(frame):
 
 def create_test_results_view(test_results, SY):
 
-    test_results = add_in_grade_levels(test_results)
+    test_results = add_in_grade_levels(test_results) #subject to be changed to reference BQ view
     test_results = add_in_curriculum_col(test_results)
     test_results = add_in_unit_col(test_results)
     test_results = create_test_type_column(test_results)
