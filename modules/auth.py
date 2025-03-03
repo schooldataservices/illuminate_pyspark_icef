@@ -11,10 +11,12 @@ TOKEN_EXPIRY = 3600  # Token expiry time in seconds (1 hour)
 def get_access_token():
     # Prepare the payload for the token request
     payload = {
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET,
+        'client_id': J_CLIENT_ID,
+        'client_secret': J_CLIENT_SECRET,
         'grant_type': 'client_credentials',  # Assuming client credentials grant type
     }
+
+    print(f'Here is the client ID, and here is the Client Secert {J_CLIENT_ID}, {J_CLIENT_SECRET}')
     
     # Request the access token
     try:

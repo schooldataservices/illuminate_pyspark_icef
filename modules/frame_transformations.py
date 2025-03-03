@@ -127,14 +127,47 @@ def create_test_type_column(frame):
     )
     return frame
 
+def apply_manual_changes(test_results_view, changes_file_path):
+    # Read the changes file
+    changes = pd.read_csv(changes_file_path, header=1)
+    
+    # Drop the original columns and rename the new ones
+    changes = changes.drop(columns=['test_type', 'curriculum', 'unit', 'title'])
+    changes = changes.rename(columns={
+        'test_type.1': 'test_type',
+        'curriculum.1': 'curriculum',
+        'unit.1': 'unit',
+        'title.1': 'title'
+    })
+    changes['assessment_id'] = changes['assessment_id'].astype(str)
+
+    # List of columns to update
+    columns_to_update = ['test_type', 'curriculum', 'unit', 'title']
+
+    # Function to update column based on dictionary
+    def update_column(df, column_name, update_dict):
+        try:
+            df[column_name] = df['assessment_id'].map(update_dict).fillna(df[column_name])
+            logging.info(f'{column_name} has incurred manual changes')
+        except Exception as e:
+            logging.error(f'Unable to map for column {column_name} due to {e}')
 
 
-def create_test_results_view(test_results, SY):
+    # Iterate through columns and apply updates
+    for column in columns_to_update:
+        update_dict = changes.set_index('assessment_id')[column].to_dict()
+        update_column(test_results_view, column, update_dict)
+
+    return test_results_view
+
+
+def create_test_results_view(test_results, SY, manual_changes_file_path):
 
     test_results = add_in_grade_levels(test_results) #subject to be changed to reference BQ view
     test_results = add_in_curriculum_col(test_results)
     test_results = add_in_unit_col(test_results)
     test_results = create_test_type_column(test_results)
+    test_results_view = apply_manual_changes(test_results, manual_changes_file_path)
 
     test_results['year'] = SY
 

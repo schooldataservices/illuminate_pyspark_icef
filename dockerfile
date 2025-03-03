@@ -28,6 +28,13 @@ RUN chmod -R 777 /app
 # Expose the required ports for Spark (Spark UI and Spark Master)
 EXPOSE 7077 8080
 
+# Define environment variables
+ENV SAVE_PATH=/app/illuminate
+ENV VIEW_PATH=/app/views
+ENV MANUAL_CHANGES_FILE_PATH=/app/illuminate_checkpoint_manual_changes.csv
+ENV YEARS_DATA=24-25
+ENV START_DATE=2024-07-01
+
 # Command to run the Spark job
 CMD ["spark-submit", "/app/illuminate_pipeline.py"]
 
@@ -35,9 +42,8 @@ CMD ["spark-submit", "/app/illuminate_pipeline.py"]
 #test in airflow, if not change back to backup image
 
 #This works below
-# docker run -it \
-#   -v /home/icef/powerschool/Student_Rosters.txt:/home/icef/powerschool/Student_Rosters.txt \
-#   -v /home/g2015samtaylor/illuminate:/home/g2015samtaylor/illuminate \
-#   -v /home/g2015samtaylor/views:/home/g2015samtaylor/views \
-#   illuminate-pipeline:pyspark
+# docker run -v /path/to/local/illuminate:/app/illuminate \
+#            -v /path/to/local/views:/app/views \
+#            -v /path/to/local/illuminate_checkpoint_manual_changes.csv:/app/illuminate_checkpoint_manual_changes.csv \
+#            illuminate-pipeline:pyspark
 
