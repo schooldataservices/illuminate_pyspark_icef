@@ -32,6 +32,7 @@ def get_assessment_results(spark, save_path, view_path, manual_changes_file_path
         access_token, expires_in = get_access_token()
 
         assessments_df, assessment_id_list = get_all_assessments_metadata(access_token)
+        assessment_id_list.append('141498') #Somehow missing from shared assessments
         assessment_id_list = list(set(assessment_id_list))
         logging.info(f'Here is the length of the assessment_id_list variable {len(assessment_id_list)}')
 
