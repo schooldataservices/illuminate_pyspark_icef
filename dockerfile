@@ -31,19 +31,19 @@ EXPOSE 7077 8080
 # Define environment variables
 ENV SAVE_PATH=/app/illuminate
 ENV VIEW_PATH=/app/views
-ENV MANUAL_CHANGES_FILE_PATH=/app/illuminate_checkpoint_manual_changes.csv
 ENV YEARS_DATA=24-25
 ENV START_DATE=2024-07-01
+ENV GOOGLE_APPLICATION_CREDENTIALS=/app/icef-437929.json
 
 # Command to run the Spark job
 CMD ["spark-submit", "/app/illuminate_pipeline.py"]
 
 
-#test in airflow, if not change back to backup image
-
-#This works below
-# docker run -v /path/to/local/illuminate:/app/illuminate \
-#            -v /path/to/local/views:/app/views \
-#            -v /path/to/local/illuminate_checkpoint_manual_changes.csv:/app/illuminate_checkpoint_manual_changes.csv \
-#            illuminate-pipeline:pyspark
-
+# docker run --rm \
+#     -e SAVE_PATH=/app/illuminate \
+#     -e VIEW_PATH=/app/views \
+#     -e YEARS_DATA=23-24 \
+#     -e START_DATE=2023-07-01 \
+#     -e GOOGLE_APPLICATION_CREDENTIALS=/app/icef-437920.json \
+#     -v /home/sam/icef-437920.json:/app/icef-437920.json \
+#     illuminate-pipeline:pyspark > pipeline_output.log 2>&1

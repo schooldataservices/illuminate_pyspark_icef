@@ -2,3 +2,6 @@ apache-airflow==2.10.4
 pandas
 pyspark==3.5.4
 Requests==2.32.3
+google-cloud-bigquery
+db-dtypes
+google-cloud-secret-manager

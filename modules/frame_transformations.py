@@ -1,5 +1,6 @@
 from .assessments_endpoints import *
 from airflow.exceptions import AirflowException
+from google.cloud import bigquery
 import os
 import re
 
@@ -7,14 +8,24 @@ import re
 
 def add_in_grade_levels(test_results):
 
-    # temp_path = r'C:\Users\samuel.taylor\Downloads\Student_Rosters.txt'
-    vm_path = '/home/icef/powerschool/Student_Rosters.txt'
+    # Initialize the BigQuery client
+    client = bigquery.Client(project='icef-437920')
 
-    GL_mapping = pd.read_table(vm_path)[['STUDENTS.Student_Number', 'STUDENTS.Grade_Level']]
-    GL_mapping = GL_mapping.rename(columns={'STUDENTS.Student_Number': 'local_student_id', 
-                                            'STUDENTS.Grade_Level': 'grade_levels'})
-    GL_mapping['local_student_id'] = GL_mapping['local_student_id'].astype(str)
-    test_results = pd.merge(test_results, GL_mapping, on='local_student_id', how='left')
+    # Execute the query
+    query_job = client.query('''
+    SELECT DISTINCT 
+    CAST(student_number AS STRING) AS local_student_id,
+    grade_level AS grade_levels
+    FROM `icef-437920.views.student_to_teacher`
+    ''')
+
+    # Convert the query results to a Pandas DataFrame
+    gl_mapping = query_job.result().to_dataframe()
+
+    try:
+        test_results = pd.merge(test_results, gl_mapping, on='local_student_id', how='left')
+    except Exception as e:
+        logging.error(f'Unable to merge gl_mapping from BQ due to {e}')
     return(test_results)
 
 
@@ -127,19 +138,20 @@ def create_test_type_column(frame):
     )
     return frame
 
-def apply_manual_changes(test_results_view, changes_file_path):
-    # Read the changes file
-    changes = pd.read_csv(changes_file_path, header=1)
-    
-    # Drop the original columns and rename the new ones
-    changes = changes.drop(columns=['test_type', 'curriculum', 'unit', 'title'])
-    changes = changes.rename(columns={
-        'test_type.1': 'test_type',
-        'curriculum.1': 'curriculum',
-        'unit.1': 'unit',
-        'title.1': 'title'
-    })
-    changes['assessment_id'] = changes['assessment_id'].astype(str)
+def apply_manual_changes(test_results_view):
+
+    # Initialize the BigQuery client
+    client = bigquery.Client(project='icef-437920')
+
+    # Execute the query
+    changes = client.query('''
+    SELECT 
+    CAST(assessment_id AS STRING) AS assessment_id, 
+    * EXCEPT(assessment_id) 
+    FROM `icef-437920.illuminate.illuminate_checkpoint_title_issues`
+    ''')
+
+    changes = changes.result().to_dataframe()
 
     # List of columns to update
     columns_to_update = ['test_type', 'curriculum', 'unit', 'title']
@@ -161,13 +173,13 @@ def apply_manual_changes(test_results_view, changes_file_path):
     return test_results_view
 
 
-def create_test_results_view(test_results, SY, manual_changes_file_path):
+def create_test_results_view(test_results, SY):
 
     test_results = add_in_grade_levels(test_results) #subject to be changed to reference BQ view
     test_results = add_in_curriculum_col(test_results)
     test_results = add_in_unit_col(test_results)
     test_results = create_test_type_column(test_results)
-    test_results_view = apply_manual_changes(test_results, manual_changes_file_path)
+    test_results_view = apply_manual_changes(test_results)
 
     test_results['year'] = SY
 
@@ -231,6 +243,47 @@ def send_to_local(save_path, frame, frame_name):
     else:
         logging.info(f'No data present in {frame_name} file')
 
+from google.cloud import storage
+import logging
+import os
+
+def send_to_gcs(bucket_name, save_path, frame, frame_name):
+    """
+    Uploads a DataFrame as a CSV file to a GCS bucket.
+
+    Args:
+        bucket_name (str): The name of the GCS bucket.
+        save_path (str): The path within the bucket where the file will be saved.
+        frame (pd.DataFrame): The DataFrame to upload.
+        frame_name (str): The name of the file to save.
+    """
+    if not frame.empty:
+        # Initialize the GCS client
+        client = storage.Client()
+
+        # Create a temporary local file to save the DataFrame
+        temp_file_path = os.path.join("/tmp", frame_name)
+        frame.to_csv(temp_file_path, index=False)
+
+        try:
+            # Get the bucket
+            bucket = client.bucket(bucket_name)
+
+            # Define the blob (file path in the bucket)
+            blob = bucket.blob(os.path.join(save_path, frame_name))
+
+            # Upload the file to GCS
+            blob.upload_from_filename(temp_file_path)
+            logging.info(f"{frame_name} uploaded to GCS bucket {bucket_name} at {save_path}/{frame_name}")
+        except Exception as e:
+            logging.error(f"Failed to upload {frame_name} to GCS bucket {bucket_name}: {e}")
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+    else:
+        logging.info(f"No data present in {frame_name} file")
+
 
 
 
@@ -245,40 +298,3 @@ def bring_together_test_results(test_results_no_standard, test_results_standard)
 
     return(df)
 
-
-
-
-
-def fix_historical_columns(access_token, path_fixes_file, historical_view_path):
-
-
-    fixes = pd.read_csv(path_fixes_file)
-    v = pd.read_csv(historical_view_path) 
-
-    #remove checkpoints for view not needed for historical
-    v = v.loc[~v['title'].str.contains('checkpoint', case=False)]
-
-    print(f'The length of the v frame is {len(v)} rows')
-
-    temp = pd.merge(v, fixes, how='left', on='assessment_id', suffixes=['', '_fixes'], indicator=True)
-
-    # Apply logic to combine the columns
-    temp['title'] = temp.apply(lambda row: row['title_fixes'] if pd.notna(row['title_fixes']) else row['title'], axis=1)
-    temp['grade'] = temp.apply(lambda row: row['grade_fixes'] if pd.notna(row['grade_fixes']) else row['grade'], axis=1)
-    temp['curriculum'] = temp.apply(lambda row: row['curriculum_fixes'] if pd.notna(row['curriculum_fixes']) else row['curriculum'], axis=1)
-
-    temp = temp.drop(columns=['title_fixes', 'grade_fixes', 'curriculum_fixes', 'unit_fixes', '_merge'])
-
-    temp = temp.drop_duplicates()
-
-    print(f'the length after the merge is {len(temp)} rows')
-    
-    temp.to_csv('/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv', index=False)
-
-    return(temp)
-
-# path_fixes_file = '/home/g2015samtaylor/airflow/git_directory/Illuminate/modules/illuminate_historical_column_fixes_2324.csv'
-# historical_view_path = '/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv'
-# access_token, expires_in = get_access_token()
-# h = fix_historical_columns(access_token, path_fixes_file, historical_view_path)
-# h.to_csv('/home/g2015samtaylor/views/illuminate_assessment_results_historical.csv')

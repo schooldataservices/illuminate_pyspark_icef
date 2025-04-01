@@ -1,8 +1,11 @@
 import requests
-import time
 import logging
-from .config import *
+from .access_secrets import *
 
+J_CLIENT_ID = access_secret_version('icef-437920', 'J_CLIENT_ID', version_id="latest")
+J_CLIENT_SECRET = access_secret_version('icef-437920', 'J_CLIENT_SECRET', version_id="latest")
+token_url_illuminate = 'https://icefps.illuminateed.com/live/'
+base_url_illuminate = 'https://icefps.illuminateed.com/live/rest_server.php/Api/'
 
 # Configuration
 TOKEN_URL = f'{token_url_illuminate}?OAuth2_AccessToken'

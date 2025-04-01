@@ -3,8 +3,8 @@ import pandas as pd
 import json
 import logging
 from datetime import datetime
-from .config import base_url_illuminate
-
+token_url_illuminate = 'https://icefps.illuminateed.com/live/'
+base_url_illuminate = 'https://icefps.illuminateed.com/live/rest_server.php/Api/'
 current_date = datetime.now()
 current_date = current_date.strftime('%Y-%m-%d')
 #Currently have url_args hardcoded in each function param to be date filtered

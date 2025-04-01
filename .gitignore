@@ -4,3 +4,5 @@ logs/
 misssing_ids.csv
 *.csv
 *.ipynb
+pipeline_output.log
+venv/
