@@ -1,6 +1,8 @@
 from .assessments_endpoints import *
 from airflow.exceptions import AirflowException
 from google.cloud import bigquery
+from google.cloud import storage
+import logging
 import os
 import re
 
@@ -243,9 +245,7 @@ def send_to_local(save_path, frame, frame_name):
     else:
         logging.info(f'No data present in {frame_name} file')
 
-from google.cloud import storage
-import logging
-import os
+
 
 def send_to_gcs(bucket_name, save_path, frame, frame_name):
     """

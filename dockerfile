@@ -29,8 +29,6 @@ RUN chmod -R 777 /app
 EXPOSE 7077 8080
 
 # Define environment variables
-ENV SAVE_PATH=/app/illuminate
-ENV VIEW_PATH=/app/views
 ENV YEARS_DATA=24-25
 ENV START_DATE=2024-07-01
 ENV GOOGLE_APPLICATION_CREDENTIALS=/app/icef-437929.json
@@ -39,11 +37,3 @@ ENV GOOGLE_APPLICATION_CREDENTIALS=/app/icef-437929.json
 CMD ["spark-submit", "/app/illuminate_pipeline.py"]
 
 
-# docker run --rm \
-#     -e SAVE_PATH=/app/illuminate \
-#     -e VIEW_PATH=/app/views \
-#     -e YEARS_DATA=23-24 \
-#     -e START_DATE=2023-07-01 \
-#     -e GOOGLE_APPLICATION_CREDENTIALS=/app/icef-437920.json \
-#     -v /home/sam/icef-437920.json:/app/icef-437920.json \
-#     illuminate-pipeline:pyspark > pipeline_output.log 2>&1
