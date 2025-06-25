@@ -24,7 +24,7 @@ logging.basicConfig(
     force=True  # Ensures existing handlers are replaced
 )
 
-def get_assessment_results(spark, save_path, view_path, years_data, start_date, end_date_override=None):
+def get_assessment_results(spark, years_data, start_date, end_date_override=None):
     logging.info('\n\n-------------New Illuminate Operations Logging Instance')
 
     try:
@@ -43,10 +43,9 @@ def get_assessment_results(spark, save_path, view_path, years_data, start_date, 
         test_results_view = create_test_results_view(test_results_combined, years_data)
         logging.info("Assessment results fetched and processed.")
 
-        os.makedirs(save_path, exist_ok=True)
         logging.info(f'Sending data for {years_data} school year')
         bucket_name = "illuminatebucket-icefschools-1"
-        bucket_name_views = "viewsbucket-icefschools-1"
+        bucket_name_views = "illuminatebucket-icefschools-1"
 
         if years_data == '23-24':
 
