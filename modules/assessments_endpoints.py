@@ -177,7 +177,7 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard, start_date
                 df_page_results.reset_index(drop=True, inplace=True)
                 df_page_results['percent_correct'] = df_page_results['percent_correct'].astype(float).round().astype(int)
                 df_page_results['date_taken'] = pd.to_datetime(df_page_results['date_taken'])
-                df_page_results['Standard_No_Standard'] = standard_or_no_standard
+                df_page_results['standard_no_standard'] = standard_or_no_standard
                 df_results_list.append(df_page_results)
 
                 if page == 1:  # Record details from the first page if there are results
@@ -203,7 +203,7 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard, start_date
 
     # Concatenate all DataFrames in the list into a single DataFrame
     df_result = pd.concat(df_results_list, ignore_index=True) if df_results_list else pd.DataFrame()
-    t = pd.DataFrame(logging_list, columns=['Assessment_ID', 'Standard_No_Standard', 'Status_Code', 'Assessment_Name', 'Num_of_Pages', 'Num_Of_Tests'])
+    t = pd.DataFrame(logging_list, columns=['Assessment_ID', 'standard_no_standard', 'Status_Code', 'Assessment_Name', 'Num_of_Pages', 'Num_Of_Tests'])
 
     return df_result, t
 
@@ -259,7 +259,7 @@ def loop_through_assessment_scores(access_token, id_list, standard_or_no_standar
         
     test_results = pd.concat(df_list)
     log_results = pd.concat(t_list)
-    log_results['Standard_No_Standard'] = standard_or_no_standard
+    log_results['standard_no_standard'] = standard_or_no_standard
     log_results['last_update'] = pd.Timestamp.today().date()
     test_results['last_update'] = pd.Timestamp.today().date()
     test_results = test_results.reset_index(drop = True)
@@ -276,40 +276,3 @@ def add_missing_assessments(assessment_id_list, new_ids):
             unique_assessment_ids.add(assessment_id)
             logging.info(f'Adding missing assessment_id - {assessment_id}')
     return list(unique_assessment_ids)  # Convert back to list
-
-
-# RAW CALL
-# page = 1
-# base_url_illuminate = 'https://icefps.illuminateed.com/live/rest_server.php/Api/'
-
-# access_token, expires_in = get_access_token()
-
-# headers = {
-#     "Authorization": f"Bearer {access_token}"
-# }
-
-# _id = '115939'
-# standard_or_no_standard = 'Standard'
-
-# url_ext = f'Assessment/{_id}/View/'
-# url_ext = f'PoolAssessmentAggregateStudentResponses/?page={1}'
-
-# url_args = f'?page={page}&assessment_id={_id}&limit=1000&date_taken_start=2024-07-01&date_taken_end={current_date}'
-
-# # Determine the endpoint based on the standard_or_no_standard parameter
-# if standard_or_no_standard == 'No_Standard':
-#     url_ext = f'AssessmentAggregateStudentResponses/{url_args}'
-# elif standard_or_no_standard == 'Standard':
-#     url_ext = f'AssessmentAggregateStudentResponsesStandard/{url_args}'
-# elif standard_or_no_standard == 'Group':
-#     url_ext = f'AssessmentAggregateStudentResponsesGroup/{url_args}'
-
-# response = requests.get(base_url_illuminate + url_ext, headers=headers)
-# r = response.status_code
-
-# --------
-#This is for standalone prior file that gets appended to current years constantly updated data
-# prior_year_file_path = '/home/g2015samtaylor/backups/illuminate'
-# test_results_group = append_prior_year(prior_year_file_path, test_results_group,  'assessment_results_group_2324.csv')
-# test_results_view = append_prior_year(prior_year_file_path, test_results_view,  'assessment_results_view_2324.csv')
-# test_results_combined = append_prior_year(prior_year_file_path, test_results_combined,  'assessment_results_combined_2324.csv')

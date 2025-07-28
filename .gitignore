@@ -6,3 +6,4 @@ misssing_ids.csv
 *.ipynb
 pipeline_output.log
 venv/
+modules/test_yoy_class.py

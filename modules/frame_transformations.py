@@ -1,5 +1,4 @@
 from .assessments_endpoints import *
-from airflow.exceptions import AirflowException
 from google.cloud import bigquery
 from google.cloud import storage
 import logging
