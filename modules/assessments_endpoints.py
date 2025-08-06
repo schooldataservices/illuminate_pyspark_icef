@@ -3,6 +3,9 @@ import pandas as pd
 import json
 import logging
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+
 token_url_illuminate = 'https://icefps.illuminateed.com/live/'
 base_url_illuminate = 'https://icefps.illuminateed.com/live/rest_server.php/Api/'
 current_date = datetime.now()
@@ -207,41 +210,72 @@ def get_assessment_scores(access_token, _id, standard_or_no_standard, start_date
 
     return df_result, t
 
-def parallel_get_assessment_scores(spark_session, access_token, assessment_id_list, standard_or_no_standard, start_date, end_date_override=None):
-    """
-    This function will parallelize the API calls using Spark's RDD operations.
-    """
+# def parallel_get_assessment_scores(spark_session, access_token, assessment_id_list, standard_or_no_standard, start_date, end_date_override=None):
+#     """
+#     This function will parallelize the API calls using Spark's RDD operations.
+#     """
 
-    # Define the function that will be applied in parallel to each assessment_id
-    def fetch_assessment_scores(_id):
+#     # Define the function that will be applied in parallel to each assessment_id
+#     def fetch_assessment_scores(_id):
+#         return get_assessment_scores(access_token, _id, standard_or_no_standard, start_date, end_date_override)
+
+#     # Parallelize the assessment IDs to create an RDD
+#     rdd = spark_session.sparkContext.parallelize(assessment_id_list)
+
+#     # Use map to apply the fetch_assessment_scores function to each element of the RDD
+#     results = rdd.map(fetch_assessment_scores)
+
+#     # Collect the results back to the driver
+#     results_collected = results.collect()
+
+#     # After collect, you will have a list of tuples with (df_result, t)
+#     # Now you can combine them into a single DataFrame and log DataFrame
+#     all_results = []
+#     all_logs = []
+
+#     for df_result, t in results_collected:
+#         all_results.append(df_result)
+#         all_logs.append(t)
+
+#     # Concatenate all results DataFrames into a single DataFrame
+#     final_df = pd.concat(all_results, ignore_index=True) if all_results else pd.DataFrame()
+#     final_logs = pd.concat(all_logs, ignore_index=True) if all_logs else pd.DataFrame()
+
+#     return final_df, final_logs
+
+
+
+def parallel_get_assessment_scores_threaded(
+    access_token, assessment_id_list, standard_or_no_standard, start_date,
+    end_date_override=None, max_workers=None
+):
+    """
+    Parallelize API calls using threads (best for I/O-bound tasks like HTTP requests).
+    Dynamically adjusts the number of threads based on CPU availability.
+    """
+    # Dynamically determine number of workers
+    if max_workers is None:
+        max_workers = min(32, (os.cpu_count() or 1) + 4)
+
+    def fetch(_id):
         return get_assessment_scores(access_token, _id, standard_or_no_standard, start_date, end_date_override)
 
-    # Parallelize the assessment IDs to create an RDD
-    rdd = spark_session.sparkContext.parallelize(assessment_id_list)
-
-    # Use map to apply the fetch_assessment_scores function to each element of the RDD
-    results = rdd.map(fetch_assessment_scores)
-
-    # Collect the results back to the driver
-    results_collected = results.collect()
-
-    # After collect, you will have a list of tuples with (df_result, t)
-    # Now you can combine them into a single DataFrame and log DataFrame
     all_results = []
     all_logs = []
 
-    for df_result, t in results_collected:
-        all_results.append(df_result)
-        all_logs.append(t)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_id = {executor.submit(fetch, _id): _id for _id in assessment_id_list}
+        for future in as_completed(future_to_id):
+            try:
+                df_result, t = future.result()
+                all_results.append(df_result)
+                all_logs.append(t)
+            except Exception as e:
+                logging.error(f"Error fetching assessment ID {future_to_id[future]}: {e}")
 
-    # Concatenate all results DataFrames into a single DataFrame
     final_df = pd.concat(all_results, ignore_index=True) if all_results else pd.DataFrame()
     final_logs = pd.concat(all_logs, ignore_index=True) if all_logs else pd.DataFrame()
-
     return final_df, final_logs
-
-
-
 
 
 def loop_through_assessment_scores(access_token, id_list, standard_or_no_standard, start_date, end_date_override=None):

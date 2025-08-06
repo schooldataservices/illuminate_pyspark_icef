@@ -2,8 +2,8 @@ import requests
 import logging
 from .access_secrets import *
 
-J_CLIENT_ID = access_secret_version('icef-437920', 'J_CLIENT_ID', version_id="latest")
-J_CLIENT_SECRET = access_secret_version('icef-437920', 'J_CLIENT_SECRET', version_id="latest")
+J_CLIENT_ID = access_secret_version('icef-437920', 'illuminate_client_id', version_id="latest")
+J_CLIENT_SECRET = access_secret_version('icef-437920', 'illuminate_access_key', version_id="latest")
 token_url_illuminate = 'https://icefps.illuminateed.com/live/'
 base_url_illuminate = 'https://icefps.illuminateed.com/live/rest_server.php/Api/'
 
@@ -18,6 +18,12 @@ def get_access_token():
         'client_secret': J_CLIENT_SECRET,
         'grant_type': 'client_credentials',  # Assuming client credentials grant type
     }
+
+    # payload = {
+    # 'client_id': '791BA70ABC81',
+    # 'client_secret': '9da62b59d0778d706923e85133ebca4c8e0993e4',
+    # 'grant_type': 'client_credentials',  # Assuming client credentials grant type
+    # }
 
     print(f'Here is the client ID, and here is the Client Secert {J_CLIENT_ID}, {J_CLIENT_SECRET}')
     
