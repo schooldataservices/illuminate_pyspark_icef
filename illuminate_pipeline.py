@@ -38,8 +38,24 @@ def get_assessment_results(years_data, start_date, end_date_override=None):
     test_results_standard, log_results_standard = parallel_get_assessment_scores_threaded(access_token, assessment_id_list, 'Standard', start_date, end_date_override)
     test_results_no_standard, log_results_no_standard = parallel_get_assessment_scores_threaded(access_token, assessment_id_list, 'No_Standard', start_date, end_date_override)
 
+    logging.info(f'Here is the length of the assessment_results_group variable {len(assessment_results_group)}')
+    logging.info(f'Here is the length of the test_results_standard variable {len(test_results_standard)}')
+    logging.info(f'Here is the length of the test_results_no_standard variable {len(test_results_no_standard)}')
+
+    if (
+    len(assessment_results_group) == 0
+    and len(test_results_standard) == 0
+    and len(test_results_no_standard) == 0
+    ):
+        logging.info("All assessment result frames are empty. No results for this year yet. Exiting task successfully.")
+        return  # Task ends and is marked as success. No results for this year yet. 
+
     assessment_results_combined = bring_together_test_results(test_results_no_standard, test_results_standard)
-    illuminate_assessment_results = create_test_results_view(assessment_results_combined, years_data)
+    illuminate_assessment_results = create_test_results_view(assessment_results_combined)
+    
+    assessment_results_group['year'] = years_data
+    assessment_results_combined['year'] = years_data
+    illuminate_assessment_results['year'] = years_data
     logging.info("Assessment results fetched and processed. Now bringing together with prior years")
 
     appender = yoy.YearlyDataAppender(

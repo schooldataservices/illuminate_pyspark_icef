@@ -125,6 +125,7 @@ def get_single_assessment(access_token, _id, standard_or_no_standard, start_date
 def get_assessment_scores(access_token, _id, standard_or_no_standard, start_date, end_date_override=None):
 
     effective_end_date = end_date_override if end_date_override else current_date
+    
 
     # Initialize variables
     page = 1
@@ -249,6 +250,9 @@ def parallel_get_assessment_scores_threaded(
     access_token, assessment_id_list, standard_or_no_standard, start_date,
     end_date_override=None, max_workers=None
 ):
+
+    logging.info(f"Starting parallel_get_assessment_scores_threaded with start_date={start_date}, end_date_override={end_date_override}")
+    
     """
     Parallelize API calls using threads (best for I/O-bound tasks like HTTP requests).
     Dynamically adjusts the number of threads based on CPU availability.
@@ -284,6 +288,8 @@ def loop_through_assessment_scores(access_token, id_list, standard_or_no_standar
 
     df_list = []
     t_list = []
+
+    logging.info(f"Pipeline starting with start_date={start_date}, end_date_override={end_date_override}")
 
     # Iterate over the list of IDs and append df and t to their respective lists
     for _id in id_list: #Coming from config

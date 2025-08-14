@@ -174,7 +174,7 @@ def apply_manual_changes(test_results_view):
     return test_results_view
 
 
-def create_test_results_view(test_results, SY):
+def create_test_results_view(test_results):
 
     test_results = add_in_grade_levels(test_results) #subject to be changed to reference BQ view
     test_results = add_in_curriculum_col(test_results)
@@ -182,14 +182,12 @@ def create_test_results_view(test_results, SY):
     test_results = create_test_type_column(test_results)
     test_results_view = apply_manual_changes(test_results)
 
-    test_results['year'] = SY
-
 
     #Add in proficiency col, re-order results, and change names
     test_results.loc[:, 'proficiency'] = test_results['performance_band_level'] + ' ' + test_results['performance_band_label'] #add in proficiency column
     test_results['data_source'] = 'illuminate'
 
-    test_results = test_results[['data_source', 'assessment_id', 'year', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'unit_labels', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count']]
+    test_results = test_results[['data_source', 'assessment_id', 'date_taken', 'grade_levels', 'local_student_id', 'test_type', 'curriculum', 'unit', 'unit_labels', 'title', 'standard_code', 'percent_correct', 'performance_band_level', 'performance_band_label', 'proficiency', 'mastered', '__count']]
 
     #need a validation function on the percent_correct coming out to zero. Ensure there are points possible. Or could calc percent here. 
 
